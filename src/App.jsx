@@ -336,7 +336,18 @@ const STYLE = `
 
 /* Bottom nav */
 .rk-bottomnav{
-  display:flex; border-top:1px solid var(--line); padding:9px 6px 14px; background:#fff;
+  display:flex;
+  border-top:1px solid var(--line);
+  padding:9px 6px 14px;
+  background:#fff;
+
+  position:absolute;
+  bottom:0;
+  left:0;
+  width:100%;
+  z-index:9999;
+  box-sizing:border-box;
+  position: relative;
 }
 .rk-nav-btn{
   flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none;
