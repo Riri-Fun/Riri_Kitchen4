@@ -443,16 +443,92 @@ const storage = {
     try {
       const value = localStorage.getItem(key);
       return value === null ? null : { value };
-    } catch {
+    } catch (error) {
+      console.error(`读取 ${key} 失败:`, error);
       return null;
     }
   },
+
   async set(key, value) {
     try {
       localStorage.setItem(key, value);
-    } catch {}
+      return true;
+    } catch (error) {
+      console.error(`保存 ${key} 失败:`, error);
+
+      if (error?.name === "QuotaExceededError") {
+        throw new Error(
+          "存储空间不足。请压缩图片或删除部分图片后再试。"
+        );
+      }
+
+      throw error;
+    },
   },
 };
+
+async function compressImage(
+  file,
+  maxWidth = 1000,
+  quality = 0.7
+) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("请选择图片文件"));
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const img = new Image();
+
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // 限制图片最大宽度
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("无法处理图片"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // JPEG 压缩
+        const compressedImage = canvas.toDataURL(
+          "image/jpeg",
+          quality
+        );
+
+        resolve(compressedImage);
+      };
+
+      img.onerror = () => {
+        reject(new Error("图片读取失败"));
+      };
+
+      img.src = event.target.result;
+    };
+
+    reader.onerror = () => {
+      reject(new Error("图片读取失败"));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
 
 const CATEGORIES = [
   { id: "breakfast", label: "Breakfast", icon: Coffee },
@@ -581,13 +657,45 @@ export default function RiriKitchen() {
     toastTimer.current = setTimeout(() => setToast(""), 1800);
   }
 
-  async function persistProducts(next) {
-    setProducts(next);
-    try {
-      await storage.set("rk-products", JSON.stringify(next), false);
-    } catch (e) {}
-  }
+async function persistProducts(next) {
+  try {
+    const data = JSON.stringify(next);
 
+    // 检查数据大小
+    const sizeMB =
+      new Blob([data]).size / 1024 / 1024;
+
+    console.log(
+      `菜单数据大小: ${sizeMB.toFixed(2)} MB`
+    );
+
+    if (sizeMB > 4) {
+      showToast(
+        `菜单数据过大 (${sizeMB.toFixed(2)} MB)，请减少图片数量`
+      );
+
+      return false;
+    }
+
+    await storage.set("rk-products", data);
+
+    // 只有真正保存成功之后才更新 UI
+    setProducts(next);
+
+    showToast("Product saved");
+
+    return true;
+
+  } catch (error) {
+    console.error("保存菜单失败:", error);
+
+    showToast(
+      error.message || "保存失败，请稍后再试"
+    );
+
+    return false;
+  }
+}
   async function persistOrders(next) {
     setOrders(next);
     try {
@@ -595,18 +703,38 @@ export default function RiriKitchen() {
     } catch (e) {}
   }
 
-  function handleAvatarUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      setAvatar(reader.result);
-      try {
-        await storage.set("rk-avatar", reader.result, false);
-      } catch (err) {}
-    };
-    reader.readAsDataURL(file);
+async function handleAvatarUpload(e) {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    showToast("正在处理头像...");
+
+    const compressedImage = await compressImage(
+      file,
+      500,
+      0.7
+    );
+
+    await storage.set(
+      "rk-avatar",
+      compressedImage
+    );
+
+    setAvatar(compressedImage);
+
+    showToast("Avatar saved");
+  } catch (error) {
+    console.error("头像保存失败:", error);
+
+    showToast(
+      error.message || "头像保存失败"
+    );
   }
+
+  e.target.value = "";
+}
 
   async function toggleFavorite(id) {
     const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
@@ -682,18 +810,37 @@ export default function RiriKitchen() {
     setLoginError("");
   }
 
-  function handleBannerUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      setBanner(reader.result);
-      try {
-        await storage.set("rk-banner", reader.result, false);
-      } catch (err) {}
-    };
-    reader.readAsDataURL(file);
+async function handleBannerUpload(e) {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    showToast("正在压缩 Banner...");
+
+    const compressedImage = await compressImage(
+      file,
+      1400,
+      0.7
+    );
+
+    await storage.set(
+      "rk-banner",
+      compressedImage
+    );
+
+    setBanner(compressedImage);
+
+    showToast("Banner saved");
+  } catch (error) {
+    console.error("Banner 保存失败:", error);
+    showToast(
+      error.message || "Banner 保存失败"
+    );
   }
+
+  e.target.value = "";
+}
 
   function addToCart(id) {
     setCart((c) => {
@@ -802,33 +949,67 @@ export default function RiriKitchen() {
   function closeForm() {
     setDraft(null);
   }
-  function saveDraft() {
-    if (!draft.name.trim()) {
-      showToast("Name is required");
-      return;
-    }
-    if (draft.id) {
-      persistProducts(products.map((p) => (p.id === draft.id ? draft : p)));
-      showToast("Product updated");
-    } else {
-      const newProduct = { ...draft, id: `p${Date.now()}` };
-      persistProducts([newProduct, ...products]);
-      showToast("Product published");
-    }
+
+  async function saveDraft() {
+  if (!draft.name.trim()) {
+    showToast("Name is required");
+    return;
+  }
+
+  let next;
+
+  if (draft.id) {
+    next = products.map((p) =>
+      p.id === draft.id ? draft : p
+    );
+  } else {
+    const newProduct = {
+      ...draft,
+      id: `p${Date.now()}`,
+    };
+
+    next = [newProduct, ...products];
+  }
+
+  const success = await persistProducts(next);
+
+  if (success) {
     setDraft(null);
   }
+}
+  
   function deleteProduct(id) {
     persistProducts(products.filter((p) => p.id !== id));
     showToast("Product removed");
   }
-  function handleImageUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setDraft((d) => ({ ...d, image: reader.result }));
-    reader.readAsDataURL(file);
+  async function handleImageUpload(e) {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    showToast("正在压缩图片...");
+
+    const compressedImage = await compressImage(
+      file,
+      1000,
+      0.7
+    );
+
+    setDraft((d) => ({
+      ...d,
+      image: compressedImage,
+    }));
+
+    showToast("图片已压缩");
+  } catch (error) {
+    console.error("图片上传失败:", error);
+    showToast(error.message || "图片处理失败");
   }
 
+  // 允许再次选择同一张图片
+  e.target.value = "";
+}
   const specialProduct = products.find((p) => p.special) || products[0];
   const topProducts = products.filter((p) => p.top);
   const filteredMenu = products.filter((p) => {
