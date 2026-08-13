@@ -128,11 +128,20 @@ const STYLE = `
 .rk-search input{ border:none; background:transparent; outline:none; font-size:13.5px; flex:1; font-family:'Nunito',sans-serif; }
 
 /* Home */
-.rk-promo{
-  background:linear-gradient(120deg,#F1685C,#E8574B); border-radius:18px; padding:18px;
-  color:#fff; margin-bottom:14px; display:flex; align-items:center; gap:14px; position:relative; width: 100%;
+.rk-promo {
+  background: linear-gradient(120deg,#F1685C,#E8574B);
+  border-radius: 18px;
+  padding: 18px;
+  color: #fff;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  box-shadow: 0 10px 24px rgba(217,72,61,0.28);
+
+  height: 180px;
   box-sizing: border-box;
-  box-shadow:0 10px 24px rgba(217,72,61,0.28);
 }
 .rk-banner-edit{
   position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%;
