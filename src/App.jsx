@@ -615,6 +615,8 @@ export default function RiriKitchen() {
   const [loginPw, setLoginPw] = useState("");
   const [loginError, setLoginError] = useState("");
   const [banner, setBanner] = useState("");
+  const [bannerProductId, setBannerProductId] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const bannerInputRef = useRef(null);
   const [cookHearts, setCookHearts] = useState(0);
   const [paymentOpen, setPaymentOpen] = useState(false);
