@@ -1089,17 +1089,33 @@ async function handleBannerUpload(e) {
                       <input placeholder="Search dishes..." value={search} onChange={(e) => { setSearch(e.target.value); }} onKeyDown={(e) => { if (e.key === "Enter") { setTab("menu"); } }} />
                     </div>
                     <div
-                      className="rk-promo"
-                      style={banner ? { backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
-                    >
+  className="rk-promo"
+  onClick={() => {
+    if (!bannerProductId) return;
+
+    setSelectedProductId(bannerProductId);
+  }}
+  style={{
+    cursor: bannerProductId ? "pointer" : "default",
+    ...(banner
+      ? {
+          backgroundImage: `url(${banner})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : {}),
+  }}
+>
                       {!banner && <div className="rk-promo-emoji">🎉</div>}
-                      <div style={banner ? { background: "rgba(43,33,29,0.4)", borderRadius: 12, padding: "8px 12px" } : {}}>
-                        <strong>Get your 50% OFF</strong>
-                        <span>coupon on your first order</span>
-                      </div>
+                      
                       {role === "cook" && (
                         <>
-                          <button className="rk-banner-edit" onClick={() => bannerInputRef.current?.click()} title="Change banner photo">
+                          <button className="rk-banner-edit" 
+                            onClick={(e) => {
+  e.stopPropagation();
+  bannerInputRef.current?.click();
+}}
+                            title="Change banner photo">
                             <Upload size={12} />
                           </button>
                           <input ref={bannerInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleBannerUpload} />
