@@ -652,6 +652,7 @@ export default function RiriKitchen() {
     (async () => {
       try {
 const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
+  storage.get("rk-products"),
   storage.get("rk-orders"),
   storage.get("rk-avatar"),
   storage.get("rk-favorites"),
