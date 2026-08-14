@@ -1644,7 +1644,7 @@ async function handleBannerUpload(e) {
           <button
             className="rk-form-save"
             onClick={() => {
-              addToCart(product.id);
+              addToCart(selectedProduct.id);
               setSelectedProductId(null);
             }}
           >
@@ -1654,8 +1654,7 @@ async function handleBannerUpload(e) {
 
         </div>
       </div>
-    );
-})()}
+    )}
 
             {paymentOpen && (
               <div className="rk-form-overlay">
