@@ -1658,11 +1658,7 @@ async function handleBannerUpload(e) {
 })()}
             {paymentOpen && (
               <div className="rk-form-overlay">
-                {selectedProductId && (() => {
-  const product = products.find((p) => p.id === selectedProductId);
-
-  if (!product) return null;
-
+         
   return (            
                 <div className="rk-form-sheet">
                   <h3>Payment</h3>
