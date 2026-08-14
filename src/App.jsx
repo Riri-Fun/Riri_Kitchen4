@@ -48,6 +48,8 @@ const STYLE = `
   display:flex;
   flex-direction:column;
   overflow-y:auto;
+  padding-bottom:72px;
+  box-sizing:border-box;
 }
 .rk-content{ flex:1; padding:20px 20px 8px; }
 
@@ -340,14 +342,12 @@ const STYLE = `
   border-top:1px solid var(--line);
   padding:9px 6px 14px;
   background:#fff;
-
   position:absolute;
   bottom:0;
   left:0;
   width:100%;
   z-index:9999;
   box-sizing:border-box;
-  position: relative;
 }
 .rk-nav-btn{
   flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none;
@@ -637,6 +637,7 @@ export default function RiriKitchen() {
   const [loginError, setLoginError] = useState("");
   const [banner, setBanner] = useState("");
   const [bannerProductId, setBannerProductId] = useState("");
+  const [bannerProductId, setBannerProductId] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const bannerInputRef = useRef(null);
   const [cookHearts, setCookHearts] = useState(0);
@@ -651,14 +652,13 @@ export default function RiriKitchen() {
     (async () => {
       try {
         const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
-          storage.get("rk-products", false).catch(() => null),
-          storage.get("rk-orders", false).catch(() => null),
-          storage.get("rk-avatar", false).catch(() => null),
-          storage.get("rk-favorites", false).catch(() => null),
-          storage.get("rk-notifications", false).catch(() => null),
-          storage.get("rk-mealprefs", false).catch(() => null),
-          storage.get("rk-banner", false).catch(() => null),
-          storage.get("rk-cookhearts", false).catch(() => null),
+          storage.get("rk-orders")
+storage.get("rk-avatar")
+storage.get("rk-favorites")
+storage.get("rk-notifications")
+storage.get("rk-mealprefs")
+storage.get("rk-banner")
+storage.get("rk-cookhearts")
         ]);
         if (pRes && pRes.value) setProducts(JSON.parse(pRes.value));
         if (oRes && oRes.value) setOrders(JSON.parse(oRes.value));
@@ -763,7 +763,7 @@ async function handleAvatarUpload(e) {
     const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
     setFavorites(next);
     try {
-      await storage.set("rk-favorites", JSON.stringify(next), false);
+      await storage.set("rk-orders", JSON.stringify(next))
     } catch (e) {}
   }
 
@@ -778,7 +778,7 @@ async function handleAvatarUpload(e) {
     ];
     setNotifications(next);
     try {
-      await storage.set("rk-notifications", JSON.stringify(next), false);
+      await storage.set("rk-notifications", JSON.stringify(next));
     } catch (e) {}
     setNotifDraft({ title: "", message: "" });
     showToast("Notification published");
@@ -788,14 +788,14 @@ async function handleAvatarUpload(e) {
     const next = notifications.filter((n) => n.id !== id);
     setNotifications(next);
     try {
-      await storage.set("rk-notifications", JSON.stringify(next), false);
+      await storage.set("rk-notifications", JSON.stringify(next));
     } catch (e) {}
   }
 
   async function updateMealPrefs(next) {
     setMealPrefs(next);
     try {
-      await storage.set("rk-mealprefs", JSON.stringify(next), false);
+      await storage.set("rk-mealprefs", JSON.stringify(next));
     } catch (e) {}
   }
   function toggleMeat(name) {
@@ -853,7 +853,8 @@ async function handleBannerUpload(e) {
     );
 
     setBanner(compressedImage);
-
+    setBannerProductId(products[0]?.id || null);
+    
     showToast("Banner saved");
   } catch (error) {
     console.error("Banner 保存失败:", error);
@@ -918,7 +919,7 @@ async function handleBannerUpload(e) {
     const nextHearts = cookHearts + totalHearts;
     setCookHearts(nextHearts);
     try {
-      await storage.set("rk-cookhearts", String(nextHearts), false);
+      await storage.set("rk-cookhearts", String(nextHearts));
     } catch (e) {}
     setCart({});
     setExpandedPrefId(null);
@@ -1577,8 +1578,91 @@ async function handleBannerUpload(e) {
               <button className={`rk-nav-btn ${tab === "profile" ? "active" : ""}`} onClick={() => setTab("profile")}><User size={18} /><span>Profile</span></button>
             </div>
 
+
+    <div className="rk-form-overlay">
+      <div className="rk-form-sheet">
+        
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div
+            style={{
+              width: "100%",
+              height: 180,
+              borderRadius: 16,
+              overflow: "hidden",
+              marginBottom: 14,
+            }}
+          >
+            <DishImage product={product} />
+          </div>
+
+          <h3 style={{ marginBottom: 4 }}>
+            {product.name}
+          </h3>
+
+          <div style={{ color: "var(--muted)", fontSize: 12 }}>
+            {product.local}
+          </div>
+        </div>
+
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--muted)",
+            lineHeight: 1.5,
+            marginBottom: 14,
+          }}
+        >
+          {product.desc}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 18,
+          }}
+        >
+          <span>
+            ⭐ {product.rating} / 5
+          </span>
+
+          <span style={{ fontWeight: 800 }}>
+            ❤️ {product.heartPrice || 1}
+          </span>
+        </div>
+
+        <div className="rk-form-actions">
+          <button
+            className="rk-form-cancel"
+            onClick={() => setSelectedProductId(null)}
+          >
+            Close
+          </button>
+
+          <button
+            className="rk-form-save"
+            onClick={() => {
+              addToCart(product.id);
+              setSelectedProductId(null);
+            }}
+          >
+            Add to Order
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+})()}
             {paymentOpen && (
               <div className="rk-form-overlay">
+                {selectedProductId && (() => {
+  const product = products.find((p) => p.id === selectedProductId);
+
+  if (!product) return null;
+
+  return (            
                 <div className="rk-form-sheet">
                   <h3>Payment</h3>
                   {cartItems.map((item) => (
