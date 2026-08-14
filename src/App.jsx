@@ -1580,81 +1580,82 @@ async function handleBannerUpload(e) {
             </div>
 
 
-    <div className="rk-form-overlay">
-      <div className="rk-form-sheet">
-        
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div
-            style={{
-              width: "100%",
-              height: 180,
-              borderRadius: 16,
-              overflow: "hidden",
-              marginBottom: 14,
-            }}
-          >
-            <DishImage product={product} />
-          </div>
-
-          <h3 style={{ marginBottom: 4 }}>
-            {product.name}
-          </h3>
-
-          <div style={{ color: "var(--muted)", fontSize: 12 }}>
-            {product.local}
-          </div>
-        </div>
-
+ {selectedProduct && (
+  <div className="rk-form-overlay">
+    <div className="rk-form-sheet">
+      
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
         <div
           style={{
-            fontSize: 12,
-            color: "var(--muted)",
-            lineHeight: 1.5,
+            width: "100%",
+            height: 180,
+            borderRadius: 16,
+            overflow: "hidden",
             marginBottom: 14,
           }}
         >
-          {product.desc}
+          <DishImage product={selectedProduct} />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 18,
-          }}
-        >
-          <span>
-            ⭐ {product.rating} / 5
-          </span>
+        <h3 style={{ marginBottom: 4 }}>
+          {selectedProduct.name}
+        </h3>
 
-          <span style={{ fontWeight: 800 }}>
-            ❤️ {product.heartPrice || 1}
-          </span>
-        </div>
-
-        <div className="rk-form-actions">
-          <button
-            className="rk-form-cancel"
-            onClick={() => setSelectedProductId(null)}
-          >
-            Close
-          </button>
-
-          <button
-            className="rk-form-save"
-            onClick={() => {
-              addToCart(selectedProduct.id);
-              setSelectedProductId(null);
-            }}
-          >
-            Add to Order
-          </button>
-        </div>
-
+        <div style={{ color: "var(--muted)", fontSize: 12 }}>
+          {selectedProduct.local}
         </div>
       </div>
-    )}
+
+      <div
+        style={{
+          fontSize: 12,
+          color: "var(--muted)",
+          lineHeight: 1.5,
+          marginBottom: 14,
+        }}
+      >
+        {selectedProduct.desc}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 18,
+        }}
+      >
+        <span>
+          ⭐ {selectedProduct.rating} / 5
+        </span>
+
+        <span style={{ fontWeight: 800 }}>
+          ❤️ {selectedProduct.heartPrice || 1}
+        </span>
+      </div>
+
+      <div className="rk-form-actions">
+        <button
+          className="rk-form-cancel"
+          onClick={() => setSelectedProductId(null)}
+        >
+          Close
+        </button>
+
+        <button
+          className="rk-form-save"
+          onClick={() => {
+            addToCart(selectedProduct.id);
+            setSelectedProductId(null);
+          }}
+        >
+          Add to Order
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
 
             {paymentOpen && (
               <div className="rk-form-overlay">
