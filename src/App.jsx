@@ -651,15 +651,15 @@ export default function RiriKitchen() {
   useEffect(() => {
     (async () => {
       try {
-        const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
-          storage.get("rk-orders")
-storage.get("rk-avatar")
-storage.get("rk-favorites")
-storage.get("rk-notifications")
-storage.get("rk-mealprefs")
-storage.get("rk-banner")
-storage.get("rk-cookhearts")
-        ]);
+const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
+  storage.get("rk-orders"),
+  storage.get("rk-avatar"),
+  storage.get("rk-favorites"),
+  storage.get("rk-notifications"),
+  storage.get("rk-mealprefs"),
+  storage.get("rk-banner"),
+  storage.get("rk-cookhearts"),
+]);
         if (pRes && pRes.value) setProducts(JSON.parse(pRes.value));
         if (oRes && oRes.value) setOrders(JSON.parse(oRes.value));
         if (aRes && aRes.value) setAvatar(aRes.value);
