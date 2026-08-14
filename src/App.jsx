@@ -1652,14 +1652,14 @@ async function handleBannerUpload(e) {
           </button>
         </div>
 
+        </div>
       </div>
-    </div>
-  );
+    );
 })()}
+
             {paymentOpen && (
               <div className="rk-form-overlay">
-         
-                <div className="rk-form-sheet">
+              <div className="rk-form-sheet">
                   <h3>Payment</h3>
                   {cartItems.map((item) => (
                     <div key={item.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "9px 0", borderBottom: "1px solid var(--line)" }}>
