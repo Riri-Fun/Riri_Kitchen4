@@ -1659,7 +1659,6 @@ async function handleBannerUpload(e) {
             {paymentOpen && (
               <div className="rk-form-overlay">
          
-  return (            
                 <div className="rk-form-sheet">
                   <h3>Payment</h3>
                   {cartItems.map((item) => (
