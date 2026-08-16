@@ -636,7 +636,7 @@ export default function RiriKitchen() {
   const [loginPw, setLoginPw] = useState("");
   const [loginError, setLoginError] = useState("");
   const [banner, setBanner] = useState("");
-  const [bannerProductId, setBannerProductId] = useState("");
+
   const [bannerProductId, setBannerProductId] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const bannerInputRef = useRef(null);
@@ -764,7 +764,7 @@ async function handleAvatarUpload(e) {
     const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
     setFavorites(next);
     try {
-      await storage.set("rk-orders", JSON.stringify(next))
+      await storage.set("rk-favorites", JSON.stringify(next))
     } catch (e) {}
   }
 
