@@ -640,6 +640,9 @@ export default function RiriKitchen() {
   const [bannerProductId, setBannerProductId] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const bannerInputRef = useRef(null);
+  const selectedProduct = products.find(
+  (p) => p.id === selectedProductId
+);
   const [cookHearts, setCookHearts] = useState(0);
   const [paymentOpen, setPaymentOpen] = useState(false);
 
