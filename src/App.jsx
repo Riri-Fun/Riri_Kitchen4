@@ -723,7 +723,7 @@ async function persistProducts(next) {
   async function persistOrders(next) {
     setOrders(next);
     try {
-      await storage.set("rk-orders", JSON.stringify(next), false);
+      await storage.set("rk-favorites", JSON.stringify(next))
     } catch (e) {}
   }
 
