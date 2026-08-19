@@ -5,6 +5,12 @@ import {
   Upload, Edit2, X, Check, Coffee, UtensilsCrossed, Moon, IceCream2,
   Utensils, ShoppingBag
 } from "lucide-react";
+import { supabase } from "./supabase";
+
+// Shared-menu constants: single row in the `menus` table that both the
+// cook and family roles read/write, so a menu change made by one role is
+// visible to the other in (near) real time.
+const MENU_ROW_ID = "shared";
 
 const STYLE = `
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap');
@@ -654,8 +660,7 @@ export default function RiriKitchen() {
   useEffect(() => {
     (async () => {
       try {
-const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
-  storage.get("rk-products"),
+const [oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
   storage.get("rk-orders"),
   storage.get("rk-avatar"),
   storage.get("rk-favorites"),
@@ -664,7 +669,24 @@ const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
   storage.get("rk-banner"),
   storage.get("rk-cookhearts"),
 ]);
-        if (pRes && pRes.value) setProducts(JSON.parse(pRes.value));
+        // Products now live in Supabase (shared across cook/family), not
+        // localStorage (which is per-browser and can't be shared).
+        const { data: menuRow, error: menuErr } = await supabase
+          .from("menus")
+          .select("products")
+          .eq("id", MENU_ROW_ID)
+          .maybeSingle();
+        if (menuErr) {
+          console.error("加载菜单失败:", menuErr);
+        } else if (menuRow && menuRow.products) {
+          setProducts(menuRow.products);
+        } else {
+          // No shared row yet — seed it from the local defaults so both
+          // roles start from the same menu.
+          await supabase
+            .from("menus")
+            .upsert({ id: MENU_ROW_ID, products: SEED_PRODUCTS });
+        }
         if (oRes && oRes.value) setOrders(JSON.parse(oRes.value));
         if (aRes && aRes.value) setAvatar(aRes.value);
         if (fRes && fRes.value) setFavorites(JSON.parse(fRes.value));
@@ -676,6 +698,26 @@ const [pRes, oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
         setDataLoaded(true);
       }
     })();
+  }, []);
+
+  // Live-sync: whenever anyone (cook or family) updates the shared menu
+  // row in Supabase, push the new products into this browser's state too.
+  useEffect(() => {
+    const channel = supabase
+      .channel("menus-realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "menus", filter: `id=eq.${MENU_ROW_ID}` },
+        (payload) => {
+          if (payload.new && payload.new.products) {
+            setProducts(payload.new.products);
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   function showToast(msg) {
@@ -704,7 +746,13 @@ async function persistProducts(next) {
       return false;
     }
 
-    await storage.set("rk-products", data);
+    // Write to the shared Supabase row so every device (cook + family)
+    // sees the same menu, instead of only this browser's localStorage.
+    const { error } = await supabase
+      .from("menus")
+      .upsert({ id: MENU_ROW_ID, products: next });
+
+    if (error) throw error;
 
     // 只有真正保存成功之后才更新 UI
     setProducts(next);
