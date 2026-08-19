@@ -660,26 +660,27 @@ export default function RiriKitchen() {
   useEffect(() => {
     (async () => {
       try {
-const [oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
+const [oRes, aRes, fRes, nRes, mRes, hRes] = await Promise.all([
   storage.get("rk-orders"),
   storage.get("rk-avatar"),
   storage.get("rk-favorites"),
   storage.get("rk-notifications"),
   storage.get("rk-mealprefs"),
-  storage.get("rk-banner"),
   storage.get("rk-cookhearts"),
 ]);
-        // Products now live in Supabase (shared across cook/family), not
-        // localStorage (which is per-browser and can't be shared).
+        // Products and banner now live in Supabase (shared across
+        // cook/family), not localStorage (which is per-browser and can't
+        // be shared).
         const { data: menuRow, error: menuErr } = await supabase
           .from("menus")
-          .select("products")
+          .select("products, banner")
           .eq("id", MENU_ROW_ID)
           .maybeSingle();
         if (menuErr) {
           console.error("加载菜单失败:", menuErr);
-        } else if (menuRow && menuRow.products) {
-          setProducts(menuRow.products);
+        } else if (menuRow) {
+          if (menuRow.products) setProducts(menuRow.products);
+          if (menuRow.banner) setBanner(menuRow.banner);
         } else {
           // No shared row yet — seed it from the local defaults so both
           // roles start from the same menu.
@@ -692,7 +693,6 @@ const [oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
         if (fRes && fRes.value) setFavorites(JSON.parse(fRes.value));
         if (nRes && nRes.value) setNotifications(JSON.parse(nRes.value));
         if (mRes && mRes.value) setMealPrefs(JSON.parse(mRes.value));
-        if (bRes && bRes.value) setBanner(bRes.value);
         if (hRes && hRes.value) setCookHearts(parseInt(hRes.value, 10) || 0);
       } finally {
         setDataLoaded(true);
@@ -711,6 +711,9 @@ const [oRes, aRes, fRes, nRes, mRes, bRes, hRes] = await Promise.all([
         (payload) => {
           if (payload.new && payload.new.products) {
             setProducts(payload.new.products);
+          }
+          if (payload.new && payload.new.banner !== undefined) {
+            setBanner(payload.new.banner || "");
           }
         }
       )
@@ -899,14 +902,17 @@ async function handleBannerUpload(e) {
       0.7
     );
 
-    await storage.set(
-      "rk-banner",
-      compressedImage
-    );
+    // Write to the shared Supabase row so every device (cook + family)
+    // sees the same banner, instead of only this browser's localStorage.
+    const { error } = await supabase
+      .from("menus")
+      .upsert({ id: MENU_ROW_ID, banner: compressedImage });
+
+    if (error) throw error;
 
     setBanner(compressedImage);
     setBannerProductId(products[0]?.id || null);
-    
+
     showToast("Banner saved");
   } catch (error) {
     console.error("Banner 保存失败:", error);
