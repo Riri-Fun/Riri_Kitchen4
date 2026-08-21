@@ -660,13 +660,9 @@ export default function RiriKitchen() {
   useEffect(() => {
     (async () => {
       try {
-const [oRes, aRes, fRes, nRes, mRes, hRes] = await Promise.all([
+const [oRes, nRes] = await Promise.all([
   storage.get("rk-orders"),
-  storage.get("rk-avatar"),
-  storage.get("rk-favorites"),
   storage.get("rk-notifications"),
-  storage.get("rk-mealprefs"),
-  storage.get("rk-cookhearts"),
 ]);
         // Products and banner now live in Supabase (shared across
         // cook/family), not localStorage (which is per-browser and can't
@@ -689,16 +685,38 @@ const [oRes, aRes, fRes, nRes, mRes, hRes] = await Promise.all([
             .upsert({ id: MENU_ROW_ID, products: SEED_PRODUCTS });
         }
         if (oRes && oRes.value) setOrders(JSON.parse(oRes.value));
-        if (aRes && aRes.value) setAvatar(aRes.value);
-        if (fRes && fRes.value) setFavorites(JSON.parse(fRes.value));
         if (nRes && nRes.value) setNotifications(JSON.parse(nRes.value));
-        if (mRes && mRes.value) setMealPrefs(JSON.parse(mRes.value));
-        if (hRes && hRes.value) setCookHearts(parseInt(hRes.value, 10) || 0);
       } finally {
         setDataLoaded(true);
       }
     })();
   }, []);
+
+  // Per-role personal settings (avatar, favorites, meal prefs, hearts):
+  // each role gets its own localStorage keys so cook and family no longer
+  // share one avatar/preference set. Runs whenever the signed-in role
+  // changes (i.e. right after login), and resets to defaults on logout.
+  useEffect(() => {
+    if (!role) {
+      setAvatar("");
+      setFavorites([]);
+      setMealPrefs({ meats: {}, spice: "medium" });
+      setCookHearts(0);
+      return;
+    }
+    (async () => {
+      const [aRes, fRes, mRes, hRes] = await Promise.all([
+        storage.get(`rk-avatar-${role}`),
+        storage.get(`rk-favorites-${role}`),
+        storage.get(`rk-mealprefs-${role}`),
+        storage.get(`rk-cookhearts-${role}`),
+      ]);
+      setAvatar(aRes && aRes.value ? aRes.value : "");
+      setFavorites(fRes && fRes.value ? JSON.parse(fRes.value) : []);
+      setMealPrefs(mRes && mRes.value ? JSON.parse(mRes.value) : { meats: {}, spice: "medium" });
+      setCookHearts(hRes && hRes.value ? parseInt(hRes.value, 10) || 0 : 0);
+    })();
+  }, [role]);
 
   // Live-sync: whenever anyone (cook or family) updates the shared menu
   // row in Supabase, push the new products into this browser's state too.
@@ -796,7 +814,7 @@ async function handleAvatarUpload(e) {
     );
 
     await storage.set(
-      "rk-avatar",
+      `rk-avatar-${role}`,
       compressedImage
     );
 
@@ -818,7 +836,7 @@ async function handleAvatarUpload(e) {
     const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
     setFavorites(next);
     try {
-      await storage.set("rk-favorites", JSON.stringify(next))
+      await storage.set(`rk-favorites-${role}`, JSON.stringify(next))
     } catch (e) {}
   }
 
@@ -850,7 +868,7 @@ async function handleAvatarUpload(e) {
   async function updateMealPrefs(next) {
     setMealPrefs(next);
     try {
-      await storage.set("rk-mealprefs", JSON.stringify(next));
+      await storage.set(`rk-mealprefs-${role}`, JSON.stringify(next));
     } catch (e) {}
   }
   function toggleMeat(name) {
@@ -977,7 +995,7 @@ async function handleBannerUpload(e) {
     const nextHearts = cookHearts + totalHearts;
     setCookHearts(nextHearts);
     try {
-      await storage.set("rk-cookhearts", String(nextHearts));
+      await storage.set(`rk-cookhearts-${role}`, String(nextHearts));
     } catch (e) {}
     setCart({});
     setExpandedPrefId(null);
@@ -1004,7 +1022,7 @@ async function handleBannerUpload(e) {
       const nextHearts = Math.max(0, cookHearts - order.heartsPaid);
       setCookHearts(nextHearts);
       try {
-        await storage.set("rk-cookhearts", String(nextHearts), false);
+        await storage.set(`rk-cookhearts-${role}`, String(nextHearts));
       } catch (e) {}
     }
     showToast("Order cancelled");
